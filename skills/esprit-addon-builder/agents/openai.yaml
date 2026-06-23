@@ -1,0 +1,4 @@
+interface:
+  display_name: "Esprit Addon Builder"
+  short_description: "Build Esprit CMS addons from HTML."
+  default_prompt: "Use the local Esprit Addon Builder skill to convert index-to-convert.html into reviewed addon JSON."
