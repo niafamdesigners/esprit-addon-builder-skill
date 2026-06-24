@@ -1,0 +1,13 @@
+{
+  "name": "esprit-addon-builder",
+  "description": "Convert raw HTML files or UI blocks into Esprit Portal / Esprit CMS addon definitions (addon JSON, and optional reviewed export SQL).",
+  "version": "1.0.0",
+  "author": {
+    "name": "Niafam Designers",
+    "email": "niafam.design1402@gmail.com"
+  },
+  "homepage": "https://github.com/niafamdesigners/esprit-addon-builder-skill",
+  "repository": "https://github.com/niafamdesigners/esprit-addon-builder-skill",
+  "license": "MIT",
+  "keywords": ["esprit", "cms", "addon", "html", "code-generation"]
+}

@@ -1,0 +1,19 @@
+{
+  "name": "esprit-addon-builder-marketplace",
+  "owner": {
+    "name": "Niafam Designers",
+    "email": "niafam.design1402@gmail.com"
+  },
+  "metadata": {
+    "description": "Marketplace for the Esprit Addon Builder skill.",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "esprit-addon-builder",
+      "source": "./",
+      "description": "Convert raw HTML files or UI blocks into Esprit Portal / Esprit CMS addon definitions (addon JSON, and optional reviewed export SQL).",
+      "version": "1.0.0"
+    }
+  ]
+}
