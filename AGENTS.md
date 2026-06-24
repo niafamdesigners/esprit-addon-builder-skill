@@ -36,6 +36,14 @@ skills/esprit-addon-builder/
   - `source-review.md` — what was preserved from the removed UI.
   - `original-js/` — audit-only snapshots of three old UI files
     (`addon-knowledge.js`, `addon-skill.js`, `structure-analyzer.js`).
+- `skills/esprit-addon-endpoints/SKILL.md` — companion skill: a code-free
+  reference for the admin AJAX endpoints (`espritajax.ashx` actions
+  `saveaddon`/`save_addon_table`/`save_addon_fields`/`save_addon_query`, list and
+  relation endpoints, file handlers), the CSRF triple-placement pattern, and the
+  `B64:` body-encoding convention. Used to generate browser-console scripts that
+  submit a built addon structure (addon → table → fields, addon → query) from the
+  logged-in admin panel. The addon-builder skill designs the structure; this
+  skill provides the endpoints and encoding to send it.
 - `آموزش-افزونه-سازی/` — step-by-step Persian tutorial; do not delete until its
   content has been migrated into the skill.
 

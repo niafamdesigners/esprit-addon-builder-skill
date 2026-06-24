@@ -4,12 +4,20 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repository is
 
-This is **not** a runnable application — it is a knowledge/skill repository. The
-product is the Claude/Codex skill at `skills/esprit-addon-builder/`, which turns
-raw HTML (e.g. `index-to-convert.html`) into **Esprit Portal / Esprit CMS addon
-definitions** (addon JSON, and optional reviewed export SQL). There is no build,
-lint, or test toolchain; "working in this repo" means editing the skill's
-Markdown rules and worked examples.
+This is **not** a runnable application — it is a knowledge/skill repository. It
+ships two complementary Claude/Codex skills under `skills/`:
+
+- `esprit-addon-builder/` — turns raw HTML (e.g. `index-to-convert.html`) into
+  **Esprit Portal / Esprit CMS addon definitions** (addon JSON, and optional
+  reviewed export SQL).
+- `esprit-addon-endpoints/` — a code-free reference for the admin AJAX endpoints
+  (`espritajax.ashx` actions, CSRF triple-placement, the `B64:` body encoding),
+  used to **generate browser-console scripts** that submit that addon structure
+  (addons → tables → fields → queries) without visiting the DB server.
+
+They chain: the builder produces the structure, the endpoints skill submits it.
+There is no build, lint, or test toolchain; "working in this repo" means editing
+the skills' Markdown rules and worked examples.
 
 `AGENTS.md` is the original mission/rules doc (in Persian). It is mostly current
 but predates two changes: the heuristic `scripts/analyze_html.py` has been
