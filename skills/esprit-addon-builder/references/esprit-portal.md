@@ -43,6 +43,13 @@ Treat these as local conventions from the source project, not universal IDs.
 - `[esprit:menu:AliasName]`: menu by alias.
 - For general templates, use the alias form rather than the numeric ID form.
 
+## Query Shortcodes
+
+- `[esprit:query:ID]`: render another addon query by its DB id.
+- `[esprit:query:ID:value]` (and `:value2:…`): render it and pass parameters,
+  read on the other side with `[parameters:i:default]` / `[intparameters:i:default]`.
+  Full mechanics are in `addon-rules.md`, "Passing Parameters Between Queries".
+
 ## Page Shortcodes
 
 - `[esprit:breadcrumb]`: renders page breadcrumb/navigation.
@@ -64,3 +71,28 @@ Useful portal shortcodes from the remaining docs:
 - `[esprit:date:X]`
 
 Use these as fixed Portal syntax, not addon query placeholders.
+
+## Translations
+
+`[esprit:translate:KEYWORD]` renders a translatable phrase, where `KEYWORD` is an
+English slug (e.g. `address`, `phone`, `fax`, `email`, `postal-code`, `today`).
+It is resolved at render time in static/template HTML (including a query's
+`starthtml`/`repeathtml`/`endhtml`/`withoutresult`) — never inside the SQL
+`SELECT`.
+
+Use it for very public, universal micro-labels that should follow the site
+language rather than be edited per install:
+
+- the contact-item labels in a footer — آدرس → `[esprit:translate:address]`,
+  تلفن → `[esprit:translate:phone]`, نمابر → `[esprit:translate:fax]`,
+  پست الکترونیک → `[esprit:translate:email]`, کد پستی → `[esprit:translate:postal-code]`.
+- stray universal words elsewhere (e.g. a header «امروز» → `[esprit:translate:today]`).
+
+Do **not** use translations for section/box headings that an editor would
+rename ("اطلاعات تماس با ما", "آمار بازدیدکنندگان", "خدمات و سامانه‌ها", a news
+box title) — those stay editable fields in a settings table. When it is unclear
+whether a phrase is a universal label or an editable heading, ask the user.
+
+After generating output that uses `[esprit:translate:…]`, report the list of
+keywords to the user so they can add them under Settings → Language Management;
+otherwise they render blank.

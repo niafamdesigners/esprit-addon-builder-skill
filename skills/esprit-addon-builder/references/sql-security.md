@@ -6,7 +6,7 @@ This reference preserves useful points extracted from the old addon knowledge pa
 
 - Generate addon JSON first.
 - Generate SQL only for export/setup flows.
-- Do not make raw SQL the first AI output for normal addon creation.
+- Keep raw SQL out of the first response for normal addon creation: the JSON is the reviewable, importable artifact, and SQL generated before the structure is agreed tends to encode mistakes that are harder to spot and undo.
 
 ## Query Rules
 

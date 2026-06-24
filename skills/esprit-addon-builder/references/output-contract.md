@@ -50,6 +50,7 @@ Use this shape for final addon generation:
       "starthtml": "",
       "repeathtml": "",
       "endhtml": "",
+      "withoutresult": "",
       "deleted": 0,
       "global": 0,
       "useinsite": 1
@@ -69,6 +70,13 @@ Use this shape for final addon generation:
 - Image fields are `file` and include dimensions when source HTML provides them.
 - `friendlyname` and `userfriendlyname` are Persian.
 - Query aliases match all placeholders in `repeathtml`.
+- Every query has a `withoutresult` holding the original, complete static HTML
+  for that block (the same DOM that `starthtml` + items + `endhtml` produce). It
+  renders when the query returns no rows, so the section degrades to the original
+  design instead of disappearing. It is plain static HTML — no
+  `[query-result:...]` placeholders. In a real project use the **verbatim**
+  source HTML, including every original item; abbreviating it (e.g. to two sample
+  items) is only acceptable inside documentation examples.
 - Placeholder syntax is Esprit syntax only.
 - Queries use site/deleted filters where appropriate.
 - `ordlist` is present only where list ordering is user-controlled.
