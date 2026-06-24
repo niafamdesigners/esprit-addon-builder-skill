@@ -1,112 +1,167 @@
-# راهنمای عامل‌ها برای این مخزن
+# Agent guide for this repository
 
-## مأموریت
+## Mission
 
-این مخزن یک پروژه محلی skill/knowledge محور برای تبدیل HTML به افزونه Esprit Portal / Esprit CMS است. ورودی رایج، فایل‌هایی مثل `index-to-convert.html` هستند و خروجی اصلی باید JSON استاندارد افزونه باشد.
+This is a local, knowledge-driven **skill** repository for converting raw HTML
+into **Esprit Portal / Esprit CMS addon definitions**. Typical input is a file
+such as `index-to-convert.html` (or a named section block); the primary output
+is valid **addon JSON**, with reviewed export SQL only when explicitly requested.
 
-UI قدیمی `addon-builder/` حذف‌شدنی/حذف‌شده است و نباید دوباره به عنوان مسیر اصلی توسعه برگردد. مسیر اصلی کار از این به بعد skill محلی زیر است:
+The old browser UI (`addon-builder/`) has been removed and must not return as the
+main development path. All work flows through the local skill:
 
 ```text
 skills/esprit-addon-builder/
 ```
 
-## ساختار اصلی
+## Structure
 
-- `skills/esprit-addon-builder/SKILL.md`: workflow اصلی تبدیل HTML به افزونه
-- `skills/esprit-addon-builder/references/`: قواعد، قرارداد خروجی و دانش تخصصی
-- `skills/esprit-addon-builder/scripts/analyze_html.py`: تحلیل سبک HTML بدون وابستگی به مرورگر
-- `skills/esprit-addon-builder/references/original-js/`: نسخه‌های محافظتی از سه فایل مهم UI قدیمی
-- `آموزش-افزونه-سازی/`: آموزش فارسی مرحله‌ای، تا زمانی که به skill/reference تبدیل نشده حذف نشود
+- `skills/esprit-addon-builder/SKILL.md` — the HTML→addon workflow, output
+  discipline, and "When To Ask Instead Of Guessing".
+- `skills/esprit-addon-builder/references/` — the distilled rules, output
+  contract, worked examples, and domain knowledge (read only what a task needs):
+  - `addon-rules.md` — naming, field types, links, images, **query rules**, and
+    the cross-cutting patterns: Passing Parameters Between Queries, Composing A
+    Section From Multiple Queries, Tabbed Widgets (incl. heterogeneous/extensible
+    tabs), Header/Footer, Footer Link Lists, Sliders/`ordlist`.
+  - `html-analysis.md` — manual structural analysis (repeating patterns,
+    parent/child, field guessing).
+  - `news-contents.md` — `contents`-based widgets: core decision, settings
+    fields, bilingual date rendering, editable section header, content types,
+    and the canonical news query template.
+  - `output-contract.md` — the exact addon JSON shape + validation checklist.
+  - `esprit-portal.md` — Portal shortcodes and translations.
+  - `sql-security.md` — SQL/export safety.
+  - `examples.md` — 10 end-to-end worked examples (Input → Analysis → Output).
+  - `source-review.md` — what was preserved from the removed UI.
+  - `original-js/` — audit-only snapshots of three old UI files
+    (`addon-knowledge.js`, `addon-skill.js`, `structure-analyzer.js`).
+- `آموزش-افزونه-سازی/` — step-by-step Persian tutorial; do not delete until its
+  content has been migrated into the skill.
 
-## فایل‌های محافظت‌شده از UI قدیمی
+There is no build, lint, or runtime. The old heuristic `scripts/analyze_html.py`
+has been removed — perform structural analysis directly while reading the HTML,
+per `references/html-analysis.md`.
 
-قبل از حذف `addon-builder/` سه فایل زیر بررسی و در skill package نگه‌داری شده‌اند:
+## Preserved old-UI files
 
-- `skills/esprit-addon-builder/references/original-js/addon-knowledge.js`
-- `skills/esprit-addon-builder/references/original-js/addon-skill.js`
-- `skills/esprit-addon-builder/references/original-js/structure-analyzer.js`
+Before `addon-builder/` was removed, three files were reviewed and kept under
+`references/original-js/`. Use them only for audit, recovering historical rules,
+or checking behavioral differences. For everyday work, read the distilled
+references first.
 
-برای استفاده روزمره، اول referenceهای خلاصه‌شده را بخوان:
+## Standard workflow
 
-- `references/addon-rules.md`
-- `references/html-analysis.md`
-- `references/news-contents.md`
-- `references/output-contract.md`
-- `references/esprit-portal.md`
-- `references/sql-security.md`
-- `references/source-review.md`
+1. Read the input HTML (often `index-to-convert.html` or a named section).
+2. Do a first structural pass by reading the HTML directly (no helper script):
+   identify repeating patterns, static vs. repeated fields, and candidate tables.
+3. Read only the references the task needs from `references/`.
+4. Produce addon JSON first.
+5. Generate SQL only when the user asks for export/setup.
+6. Verify internal consistency: tables, fields, query aliases, and HTML
+   placeholders must all line up.
 
-فایل‌های `original-js` فقط برای audit، بازیابی قواعد تاریخی، یا بررسی اختلاف رفتار استفاده شوند.
+When a decision is genuinely ambiguous (especially: is a block editorial
+`contents` or its own custom table; which category/page a selector maps to;
+whether a value is editable vs a fixed constant; the type of each tab), **ask
+the user a short, specific question** instead of guessing.
 
-## جریان کار استاندارد
+## Output rules
 
-1. HTML ورودی را بخوان، معمولا `index-to-convert.html`.
-2. در صورت نیاز تحلیل اولیه بگیر:
+- The primary AI output for addon creation must be **valid JSON**.
+- No markdown fences, comments, or extra prose around the JSON.
+- `tablename`, `fieldname`, `queryname` are English `lowercase_underscore`.
+- `friendlyname` and `userfriendlyname` are Persian.
+- Use Esprit placeholder syntax only:
+  - `[query-result:fieldname]`
+  - `[query-result-fileurl:fieldname]` — works in `repeathtml` only; for an image
+    rendered in `starthtml`/`endhtml`, resolve `files.filename` in SQL and bind a
+    plain `[query-result:…]`.
+- Never use `{fieldname}` or `{{fieldname}}`.
+- Every query carries a `withoutresult`: the original static HTML for that block,
+  shown when the query returns no rows (verbatim in real output).
+
+## Field & addon rules
+
+- Links, email, and phone use `fieldtype = textinput`; links use `length = 1024`.
+- Editable links get a companion `target` selectbox (`friendlyname = "نحوه باز شدن لینک"`,
+  default `_self`) unless the target is a fixed, intentional constant in the HTML.
+- Start link hrefs with a leading `/` (absolute from site root); external full
+  URLs (`https://…`) are bound as-is.
+- Images use `fieldtype = file` (never `image`); capture `filewidth`/`fileheight`
+  when the source `img` has them; don't add an `alt` field when a `title`/`name`
+  exists — bind `alt="[query-result:title]"`.
+- A constant image base path (and resize transforms like `/thumbnail/150-150/`)
+  stays in the HTML; store/select only the variable filename/path.
+- Sortable/repeating list tables get an `active` checkbox (string `'1'`/`'0'`) and
+  an `ordlist` selectbox whose `staticitems` are numeric (`text`/`value` both the
+  number); when the item count isn't clear from the source, ask the user.
+- Universal micro-labels (contact labels like address/phone, header words like
+  "today") use `[esprit:translate:keyword]` (English slug) rather than fields —
+  report the keys to the user to add under Settings → Language Management. Section
+  /box headings stay editable settings fields.
+- Every addon table implicitly has `id`, `siteid`, `deleted` — select/filter them;
+  never define them as fields.
+
+## Content & news rules
+
+When the HTML resembles news, articles, blogs, announcements, archives, photo or
+video reports:
+
+- Prefer the `contents`-based architecture over a custom table; repeated editorial
+  items are usually not custom-table records. The addon typically stores widget
+  settings only and reads items from `contents`, `contentgroups`, `files`,
+  `pages`, or `setting`.
+- News widgets use a fixed `SELECT TOP N` (the layout fixes the count); do **not**
+  add an `item_count` field.
+- A news section's archive page (`on_page`) is effectively required: item links
+  are built as `/[archivePage]/[link]`.
+- Render dates bilingually via `display_day`/`display_month`/`display_year`
+  driven by `[system:site-lang]` (Shamsi on FA, Gregorian otherwise); expose only
+  the date parts the markup shows.
+- Map `contenttype` for multimedia: `1` news, `2` image, `3` video, `4` audio.
+
+## Query & SQL rules
+
+- Prefer `SELECT` queries; filter with `deleted = 0` and `siteid = [system:site-id]`.
+- Guard custom-table columns with `ISNULL(...)` defaults (text `''`, link `'/'`,
+  target `'_self'`); guard `SELECT TOP 1` settings fields, e.g.
+  `AND ISNULL(slogan_text, N'') != N''`.
+- Use `ORDER BY CAST(ordlist AS INT) ASC` where `ordlist` exists.
+- Match an id inside comma-separated `groups`/`positions` with
+  `',' + col + ',' LIKE '%,' + @id + ',%'`, never plain `=`.
+- A query is addressable as `[esprit:query:ID]`; pass parameters with
+  `[esprit:query:ID:value]`, received as `[parameters:i:default]` (string) or
+  `[intparameters:i:default]` (int). Prefer passing one row `id` and resolving the
+  rest in the child query. The `ID` is assigned after import, so generated calls
+  carry a placeholder (`NN`) to be wired up.
+- Export SQL: wrap in a transaction with rollback, `@creatorid = 1`, and
+  `addons_queries.connectionid = 0`. Treat generated SQL as a review artifact.
+
+## Validating examples.md
+
+Keep the fenced JSON blocks valid and code fences balanced:
 
 ```bash
-python skills/esprit-addon-builder/scripts/analyze_html.py index-to-convert.html
+cd skills/esprit-addon-builder/references && python - <<'PY'
+import re, json
+txt = open('examples.md', encoding='utf-8').read()
+assert txt.count('```') % 2 == 0, "unbalanced code fences"
+blocks = re.findall(r'```json\n(.*?)\n```', txt, re.S)
+for b in blocks: json.loads(b)
+print(f"{len(blocks)} JSON blocks OK")
+PY
 ```
 
-3. فقط referenceهای لازم را از `skills/esprit-addon-builder/references/` بخوان.
-4. ابتدا JSON افزونه تولید کن.
-5. SQL فقط وقتی تولید شود که کاربر export/setup بخواهد.
-6. consistency بین table، field، query، alias و HTML placeholder را بررسی کن.
+## Documentation cleanup
 
-## قواعد خروجی
+Do not delete historical docs without an explicit decision; first confirm the
+content has been migrated into the skill package. Candidates for later review:
+status/progress/update/bugfix docs, old test files, duplicate samples, docs for
+removed UI/tools, and assets tied to the old UI.
 
-- خروجی اصلی AI برای ساخت افزونه باید JSON معتبر باشد.
-- JSON نباید markdown fence، توضیح اضافه یا comment داشته باشد.
-- `tablename`، `fieldname` و `queryname` باید انگلیسی و `lowercase_underscore` باشند.
-- `friendlyname` و `userfriendlyname` باید فارسی باشند.
-- mapping فقط با syntax Esprit مجاز است:
-  - `[query-result:fieldname]`
-  - `[query-result-fileurl:fieldname]`
-- از `{fieldname}` و `{{fieldname}}` استفاده نکن.
+## Writing style
 
-## قواعد مهم افزونه‌سازی
-
-- لینک‌ها، ایمیل و تلفن با `fieldtype = textinput` ساخته شوند.
-- لینک‌ها `length = 1024` داشته باشند.
-- برای لینک editable فیلد `target` از نوع `selectbox` اضافه شود، مگر target در HTML ثابت و عمدی باشد.
-- تصویرها با `fieldtype = file` ساخته شوند، نه `image`.
-- برای تصویرها، اگر `width` و `height` در HTML هست، `filewidth` و `fileheight` را ثبت کن.
-- برای `alt` تصویر، اگر جدول title/name دارد فیلد جدا نساز و از همان title/name استفاده کن.
-- `ordlist` فقط برای جدول‌های تکرارشونده و قابل مرتب‌سازی ساخته شود.
-- `textarea` بلند در SQL metadata با `length = 0` ثبت شود و در جدول فیزیکی `nvarchar(max)` باشد.
-
-## قواعد محتوا و خبر
-
-اگر HTML شبیه خبر، مقاله، بلاگ، اطلاعیه، آرشیو، گزارش تصویری یا گزارش ویدیویی است:
-
-- قبل از ساخت جدول سفارشی، معماری `contents` محور را بررسی کن.
-- آیتم‌های تکرارشونده خبر معمولا نباید رکورد جدول custom باشند.
-- جدول افزونه معمولا settings widget را نگه می‌دارد.
-- query باید از `contents`، `contentgroups`، `files`، `pages` یا `setting` استفاده کند.
-- فیلدهای تنظیماتی رایج: `title`، `on_category`، `on_page`، `arch_title`، `item_count`، `on_position`.
-
-## قواعد query و SQL
-
-- queryها ترجیحا فقط `SELECT` باشند.
-- از `deleted = 0` و `siteid = [system:site-id]` استفاده کن.
-- وقتی `ordlist` وجود دارد، `ORDER BY CAST(ordlist AS INT) ASC` مناسب است.
-- در queryهای target از `ISNULL(target,'_self') AS target` استفاده کن.
-- در export SQL مقدار `addons_queries.connectionid` همیشه `0` باشد.
-- export SQL باید transaction، rollback و `@creatorid = 1` داشته باشد.
-
-## حذف و پاک‌سازی مستندات
-
-هیچ مستند تاریخی را بدون تصمیم صریح حذف نکن. برای حذف، اول بررسی کن آیا محتوای آن در skill package منتقل شده است یا نه.
-
-کاندیدهای بررسی برای حذف مرحله بعد:
-
-- مستندات وضعیت، progress، update و bugfix
-- فایل‌های تست قدیمی
-- نمونه‌های duplicate
-- مستندات UI یا setup ابزارهای حذف‌شده
-- assetهای وابسته به UI قدیمی
-
-## سبک نگارش
-
-- توضیحات و مستندات آموزشی را فارسی روان بنویس.
-- شناسه‌های کد، JSON، SQL و مسیر فایل‌ها را انگلیسی نگه دار.
-- تغییرات را کوچک، قابل ردیابی و مرتبط با تبدیل پروژه به skill package نگه دار.
+- Write tutorials/explanations in fluent Persian.
+- Keep code identifiers, JSON, SQL, and file paths in English.
+- Keep changes small, traceable, and tied to the skill package.
