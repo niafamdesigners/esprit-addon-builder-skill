@@ -112,7 +112,7 @@ tablename=test_endp&action=save_addon_table&id=0&addonid=<addonid>&direction=0&s
 
 | Field | Plain/B64 | Example | Notes |
 |-------|-----------|---------|-------|
-| `tablename` | plain | `test_endp` | DB-safe table identifier (must be unique) |
+| `tablename` | plain | `test_endp` | DB-safe identifier, **sent without the `zes_` prefix** (must be unique) |
 | `action` | plain | `save_addon_table` | |
 | `id` | plain | `0` | create vs update |
 | `addonid` | plain | `509` | **parent addon id** (from step 1) |
@@ -126,6 +126,14 @@ tablename=test_endp&action=save_addon_table&id=0&addonid=<addonid>&direction=0&s
 | `insert_acc`, `insert_acc_groups`, `edit_acc`, `edit_acc_groups`, `delete_acc`, `delete_acc_groups`, `usersgroup_confirm`, `users_confirm` | plain | (empty) | access-control fields |
 
 → Capture returned `tableid`, inject into the fields body. If the create call does not return an id, set `tableid` manually before creating fields.
+
+> **`zes_` prefix:** send `tablename` **bare** (e.g. `petro_news_settings`).
+> Esprit creates the physical table as `zes_<tablename>` (e.g.
+> `zes_petro_news_settings`). Any SELECT query you generate for this addon must
+> therefore read from the prefixed name — `FROM zes_petro_news_settings` — while
+> system tables (`contents`, `contentgroups`, `pages`, `files`, `setting`) stay
+> bare. So in a build script the SQL references `zes_${tableName}`, not
+> `${tableName}`.
 
 ### 3. Create Field — `action=save_addon_fields`
 
@@ -157,6 +165,53 @@ action=save_addon_fields&staticitems=B64:[]&tableid=<tableid>&id=0&friendlyname=
 | `add_shop_fields` | plain | `0` | |
 
 Response: `{"status":"success","id":"…"}`. Repeat this call once per field; give each a unique `fieldname`/`friendlyname`.
+
+The captured `textinput` body above is the **minimal** subset. A `selectbox`/
+`checkbox` field carries extra option/data-source params (see 3b); they are
+accepted (empty) on any field, so a single full-superset body builder works for
+every `fieldtype` — fill the relevant group, leave the rest empty.
+
+### 3b. Selectbox / checkbox fields (static options vs DB-bound)
+
+A select-type field (`fieldtype=selectbox` for single choice, `checkbox` for
+multi) gets its options one of two ways. The extra params (beyond the textinput
+body) are:
+
+| Field | Plain/B64 | Example (decoded) | Notes |
+|-------|-----------|-------------------|-------|
+| `staticitems` | B64 | `[{"text":"تب جاری","value":"_self"},…]` | **static mode**: JSON array of options. DB mode: `[]`. |
+| `textlist` | B64 | (empty) | legacy static option labels; leave empty |
+| `valuelist` | B64 | (empty) | legacy static option values; leave empty |
+| `db_connectionstring` | plain | `0` | DB connection id (`0` = default) |
+| `db_table` | B64 | `pages` | **DB mode**: source table |
+| `db_text` | B64 | `pagetitle` | column shown as the option label |
+| `db_value` | B64 | `id` | column stored as the option value |
+| `db_whereorder` | B64 | `where deleted = 0 and siteid = [system:site-id]` | filter/sort clause appended to the lookup |
+| `md_relationfield` | B64 | (empty) | master-detail relation field; empty unless used |
+| `md_relationwith` | plain | `0` | master-detail target; `0` = none |
+| `md_equal` | plain | `0` | master-detail equality flag; `0` = none |
+
+- **Static options** (e.g. `target`, `ordlist`): set `staticitems` to the JSON
+  array, leave every `db_*` empty.
+- **DB-bound** (e.g. `on_page`→`pages`, `on_category`→`contentgroups`): set
+  `staticitems=[]`, fill `db_table`/`db_text`/`db_value`/`db_whereorder`, and keep
+  `db_connectionstring=0`. Use `selectbox` for single-select, `checkbox` for
+  multi-select (multi stores a comma-separated list of `db_value`s — match it in
+  SQL with the comma-wrapped `LIKE`, not `=`).
+
+Real captured DB-bound `on_page` body (decoded values):
+
+```
+action=save_addon_fields  staticitems=[]  tableid=745  id=0
+friendlyname=صفحهٔ آرشیو (id)  friendlyname_en=on_page  fieldname=on_page
+fieldtype=selectbox  textlist=  valuelist=  db_connectionstring=0
+db_table=pages  db_text=pagetitle  db_value=id
+db_whereorder=where deleted = 0 and siteid = [system:site-id]
+md_relationfield=  md_relationwith=0  md_equal=0
+subform=  length=128  filewidth=  fileheight=  direction=0
+showonlist=0  showoninsite=0  search=0  defaultvalue=  fieldaccess=
+add_attributes=0  add_shop_fields=0
+```
 
 ### 4. Create Query — `action=save_addon_query`
 
@@ -204,12 +259,60 @@ After a successful create, take the response `id` and inject it into dependent r
 
 So a full build script runs **addon → (table → fields) and (query)** in order, threading ids through.
 
+### Interactive id fallback (older Esprit versions)
+
+Not every EspritPortal build returns a JSON body with `id` from `saveaddon` /
+`save_addon_table` — older or not-updated panels create the row but respond with
+no usable id. The record **was** created; only the id is missing from the
+response. So a generated script must **not** hard-abort when the id is absent.
+Instead, resolve the id interactively:
+
+1. Read `resp.id` (or `resp.addonid` / `resp.tableid`) if present → use it.
+2. If absent, **`prompt()` the user** for the id of the row just created (they
+   can read it from the addon/table list in the panel), then continue the chain
+   with the entered value.
+3. Only abort if the user cancels/leaves it empty.
+
+Wrap this in one helper (e.g. `resolveId(resp, label, hint)`) reused for both the
+addon and the table step. This keeps the script working on panels that don't echo
+ids, without changing the request bodies. (Auto-lookup via the `Addonlist` /
+`addon_tables_list` list endpoints — newest row matching the just-sent name — is
+an optional alternative to prompting; prefer the prompt unless the user asks to
+automate it.)
+
 ## Name Uniqueness (avoid "duplicate name" errors)
 
 Each run should make names unique. Source strategy:
 - **Identifier fields** (`tablename`, `fieldname`) → suffix with `_<unique>` (stays DB-safe). Unique token = `Date.now().toString(36).slice(-5)`.
 - **Display-name fields** (`addonname`, `userfriendlyname`, `friendlyname`, `friendlyname_en`, `queryname`) → suffix with ` <unique>` (a space).
 - For multi-field creation in one millisecond, also append a per-item index.
+
+### Reacting to the server's duplicate-name error (retry with a counter)
+
+Pre-suffixing is optional; the server also rejects a clash at create time with a
+JSON error rather than a new id, e.g.:
+
+```json
+{ "status": "error", "msg": "عنوان انتخابی شما قبلا استفاده شده است" }
+```
+
+When this happens **nothing is created**, so there is no id to prompt for —
+retrying with a different name is the only way forward. A generated script should
+detect this response and **retry the same create with an incrementing numeric
+suffix** until it succeeds: identifier names get `_2`, `_3`, … and display names
+get ` 2`, ` 3`, …. Tell the user the addon/table/query was created under the
+bumped name so they can rename it later in the panel.
+
+- Detect with a small predicate, e.g. `status === "error"` **and** the msg
+  matches the duplicate phrase (`/قبلا استفاده شده/`).
+- Wrap each named create in a `createUnique(label, build)` loop where `build(n)`
+  rebuilds the body with the n-th suffix (`n === 1` = no suffix). Cap the attempts
+  (e.g. 50) to avoid an infinite loop.
+- If a create returns a **non-duplicate** `status:"error"`, do **not** prompt for
+  an id — abort and surface the message; creation genuinely failed.
+- When a parent (e.g. the table) is bumped, the child SQL/body must reference the
+  **final** name actually used — capture it after the retry, then build the query
+  SQL with that name.
 
 ## List Endpoints (DataTables server-side)
 
@@ -297,9 +400,41 @@ async function postForm(endpoint, body){
 }
 
 // helper to B64-encode a body value: "B64:" + b64encode(text)
+
+// --- duplicate-name detection + retry-with-counter ---
+function isDupErr(r){ return r && typeof r==="object" && r.status==="error" && /قبلا استفاده شده/.test(r.msg||""); }
+async function createUnique(label, build /* (n)=>bodyString, n>=1, n===1 means no suffix */){
+  for (var n=1; n<=50; n++){
+    var r = await postForm(build(n));
+    if (!isDupErr(r)) return { resp:r, n:n };
+    console.warn("⚠ نام «"+label+"» تکراری بود — تلاش مجدد با پسوند "+(n+1));
+  }
+  throw new Error("نام تکراری حل نشد: "+label);
+}
+
+// --- resolve a parent id; abort on a real error, prompt if id just wasn't echoed ---
+function resolveId(resp, label /* "addon" | "table" */, hint){
+  if (resp && typeof resp==="object" && resp.status==="error")
+    throw new Error(label+" خطا: "+(resp.msg||JSON.stringify(resp)));
+  var id = resp && (resp.id || resp[label + "id"]);
+  if (id) return String(id);
+  console.warn("⚠ "+label+" id در پاسخ نبود (نسخهٔ قدیمی Esprit):", resp);
+  var entered = window.prompt(
+    "Esprit این id را برنگرداند، اما رکورد ساخته شد.\n"
+    + "مقدار "+label+" id را از لیست پنل بخوان و اینجا وارد کن"
+    + (hint ? " ("+hint+")" : "") + ":", "");
+  if (entered === null || entered.trim() === "")
+    throw new Error(label+" id داده نشد — توقف.");
+  return entered.trim();
+}
 ```
 
-A full build script then: (1) `postForm(getBase(), saveaddonBody)` → read `id` as `addonid`; (2) `postForm` table with `addonid` → read `id` as `tableid`; (3) loop `postForm` fields with `tableid`; (4) `postForm` query with `addonid`. Make names unique per the rules above.
+A full build script then, for each named create, wraps the POST in
+`createUnique(label, n => buildBody(n))` so a server-side duplicate-name error
+auto-retries with an incrementing suffix; reads the parent id from the returned
+`resp` via `resolveId` (which aborts on a real error and prompts when the panel
+simply didn't echo an id); captures the **final** suffixed name to thread into
+child SQL/bodies; then runs **addon → (table → fields) and (query)** in order.
 
 ## Quick Reference
 

@@ -110,6 +110,10 @@ the user a short, specific question** instead of guessing.
   /box headings stay editable settings fields.
 - Every addon table implicitly has `id`, `siteid`, `deleted` — select/filter them;
   never define them as fields.
+- `tablename` is defined bare; the physical addon table is `zes_<tablename>`.
+  Reference custom addon tables in SQL as `zes_<tablename>` (e.g.
+  `FROM zes_petro_news_settings`); system tables (`contents`, `contentgroups`,
+  `pages`, `files`, `setting`) stay bare.
 
 ## Content & news rules
 

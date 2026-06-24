@@ -261,6 +261,11 @@ Notes on adapting the template:
   the comma-separated `groups`/`positions` columns; don't use plain `=`.
 - Drop the `@contentPosition` variable and its WHERE branch when the section has
   no position setting.
+- `<settings_table>` is a placeholder for the addon's **own** settings table, so
+  reference it by its physical `zes_<tablename>` name (e.g.
+  `FROM zes_petro_news_settings`). The `contents`, `contentgroups`, `pages`, and
+  `setting` tables are system tables — keep them bare (`addon-rules.md`,
+  "Naming").
 
 ### Rendering an editable section header
 

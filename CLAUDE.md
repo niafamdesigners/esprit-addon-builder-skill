@@ -78,6 +78,10 @@ These recur across the rules and examples; getting them wrong breaks generated a
   Prefer passing one row `id` and resolving the rest in the child query.
 - Every addon table implicitly has `id`, `siteid`, `deleted` — select/filter them,
   never define them as fields.
+- **`zes_` prefix**: `tablename` is defined bare, but the physical addon table is
+  `zes_<tablename>`. SELECT queries reference custom addon tables as
+  `zes_<tablename>` (e.g. `FROM zes_petro_news_settings`); system tables
+  (`contents`, `contentgroups`, `pages`, `files`, `setting`) stay bare.
 
 ## Validating changes to examples.md
 

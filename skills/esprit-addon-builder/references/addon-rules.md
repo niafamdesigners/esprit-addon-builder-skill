@@ -4,7 +4,16 @@
 
 - `addonname`: readable product/module name.
 - `description`: short and useful.
-- `tablename`: English `lowercase_underscore`, no physical prefix such as `zes_`.
+- `tablename`: English `lowercase_underscore`. Define it **without** the `zes_`
+  prefix — Esprit stores the physical addon table as `zes_<tablename>`. (So a
+  `tablename` of `petro_news_settings` becomes the physical table
+  `zes_petro_news_settings`.)
+- **`zes_` in SELECT queries**: every custom addon table is referenced in SQL by
+  its physical name `zes_<tablename>` (e.g. `FROM zes_petro_news_settings`).
+  System/editorial tables — `contents`, `contentgroups`, `pages`, `files`,
+  `setting`, `contents_vote` — are **not** addon tables, so they are referenced
+  bare, with no prefix. Get this wrong and the query fails: a bare custom name
+  has no physical table behind it.
 - `fieldname`: English `lowercase_underscore`.
 - `queryname`: English `lowercase_underscore`.
 - `friendlyname`: Persian field label.
@@ -96,6 +105,9 @@ Do not create separate `phone_link`, `tel_link`, `email_link`, or `mailto_link` 
 - Start link hrefs with a leading `/` so they are absolute from the site root, e.g. `href="/[query-result:link]"`.
 - `addons_queries.connectionid` must be `0` in export SQL.
 - `SELECT TOP 1` settings queries should guard the rendered field, e.g. `AND ISNULL(slogan_text,N'') != N''`.
+- Reference custom addon tables by their physical `zes_<tablename>` name in every
+  `FROM`/`JOIN`/`APPLY`; keep system tables (`contents`, `contentgroups`, `pages`,
+  `files`, `setting`) bare (see "Naming").
 - Keep aliases simple and exactly aligned with placeholders.
 
 ## Passing Parameters Between Queries
